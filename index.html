@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aventura Numérica EDINUN - Versión Final Celeste</title>
+    <style>
+        :root {
+            --naranja: #f39c12; --amarillo: #f1c40f; --azul: #3498db;
+            --verde: #2ecc71; --rojo: #e74c3c;
+            --celeste-mate-pastel: #E0F7FA; /* Color Celeste Mate Pastel  */
+        }
+
+        /* 100vh estricto sin scroll vertical  */
+        body, html {
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--celeste-mate-pastel); /* Fondo solicitado  */
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #app-container {
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            box-sizing: border-box; padding: 2vh;
+        }
+
+        .pantalla { display: none; height: 100%; width: 100%; }
+        .activa { display: flex !important; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* Pantalla Inicio */
+        .box-inicio { 
+            text-align: center; background: rgba(255,255,255,0.96); 
+            padding: 5vh; border-radius: 60px; width: 85%; max-width: 550px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); border: 4px solid var(--azul);
+        }
+        .logo-inicio { width: 100%; max-height: 120px; object-fit: contain; margin-bottom: 2vh; }
+        .input-nombre { padding: 15px; font-size: 1.2rem; border-radius: 15px; border: 3px solid var(--azul); width: 80%; text-align: center; margin-bottom: 20px; outline: none; }
+
+        /* Layout Juego [cite: 696, 714, 723, 733] */
+        .main-layout { 
+            display: grid; grid-template-columns: 200px 1fr; 
+            gap: 15px; width: 100%; height: 95vh; 
+        }
+        
+        .sidebar { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+        
+        .btn-ui { 
+            padding: 12px; border: none; border-radius: 15px; color: white; cursor: pointer;
+            font-weight: bold; font-size: 0.85rem; transition: 0.2s; box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        .btn-n { background: var(--naranja); }
+        .btn-a { background: var(--amarillo); color: #333; }
+        .btn-z { background: var(--azul); }
+        .btn-r { background: var(--rojo); }
+
+        /* RECUADRO BLANCO COMPLETO: 60px redondeo [cite: 536, 543, 663, 701, 710, 719, 728, 738, 754] */
+        .game-board { 
+            background: rgba(255,255,255,0.94); border-radius: 60px; padding: 25px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+            height: 95%; width: 95%; max-width: 1000px;
+            margin: auto; border: 4px solid #fff; position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); box-sizing: border-box;
+        }
+
+        .logo-interno { position: absolute; top: 15px; left: 35px; height: 90px; object-fit: contain; } /* [cite: 579, 630, 650] */
+        .stars-counter { position: absolute; top: 25px; right: 35px; font-weight: bold; font-size: 1.5rem; color: #2c3e50; }
+
+        .target-val { font-size: 3.5rem; font-weight: bold; padding: 10px 60px; border: 4px solid var(--azul); border-radius: 30px; background: #fff; color: #2c3e50; letter-spacing: 3px; }
+        
+        .slots-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .slot-group-separator { margin-left: 20px; }
+        .slot-col { display: flex; flex-direction: column; align-items: center; }
+        .slot-label { font-size: 0.85rem; font-weight: bold; padding: 3px 8px; border-radius: 6px; color: #fff; margin-bottom: 5px; }
+        .slot-target { width: 65px; height: 95px; border: 3px dashed #bdc3c7; border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 3rem; background: #fff; }
+
+        .shelf-nums { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; width: 100%; }
+        .num-tile { width: 55px; height: 55px; background: white; border: 2px solid #ddd; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 2rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #ccc; }
+
+        /* Modal [cite: 258, 314, 434] */
+        #modal-box { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-body { background: white; padding: 40px; border-radius: 40px; text-align: center; border: 10px solid var(--verde); width: 85%; max-width: 450px; }
+
+        /* Reporte Final [cite: 466, 481, 741, 770] */
+        .report-card { background: white; padding: 3vh; border-radius: 60px; width: 85%; max-width: 700px; text-align: center; border: 4px solid var(--azul); }
+        .f-pts-box { background:#e8f8f5; padding:1.5vh; border-radius:25px; margin: 1.5vh 0; font-size: 1.8rem; font-weight: bold; }
+
+        /* FIRMAS [cite: 771, 786, 793, 807, 817, 821] */
+        .signatures-area { display: none; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .report-card { border: none; width: 100%; }
+            .signatures-area { 
+                display: flex !important; justify-content: space-around;
+                margin-top: 110px; 
+                width: 100%;
+            }
+            .sig-box { border-top: 3px solid #000; width: 200px; padding-top: 10px; font-weight: bold; font-size: 1rem; }
+        }
+
+        /* Responsivo [cite: 448, 808, 809, 874] */
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+            .sidebar { flex-direction: row; flex-wrap: wrap; height: auto; }
+            .game-board { min-width: 90%; padding: 15px; }
+            .logo-interno { height: 50px; left: 15px; }
+            .slot-target { width: 45px; height: 70px; font-size: 2rem; }
+            .num-tile { width: 40px; height: 40px; font-size: 1.2rem; }
+            .target-val { font-size: 2.2rem; padding: 5px 30px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="scr-start" class="pantalla activa">
+        <div class="box-inicio">
+            <img src="logo_edinun.png" class="logo-inicio" draggable="false">
+            <h1>¡Bienvenido/a Estudiante!</h1>
+            <input type="text" id="player-name" class="input-nombre" placeholder="Escribe tu nombre">
+            <p>Selecciona un nivel para jugar:</p>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button class="btn-ui btn-n" onclick="selectLevel(40)">Números 1-40</button>
+                <button class="btn-ui btn-a" onclick="selectLevel(60)">Números 1-60</button>
+                <button class="btn-ui btn-z" onclick="selectLevel('high')">Desafío de 9 Cifras</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="scr-game" class="pantalla">
+        <div class="main-layout">
+            <div class="sidebar no-print">
+                <button class="btn-ui btn-n" onclick="setLvl(40)">Nivel 1-40</button>
+                <button class="btn-ui btn-a" onclick="setLvl(60)">Nivel 1-60</button>
+                <button class="btn-ui btn-z" onclick="setLvl('high')">Desafío Alto</button>
+                <button class="btn-ui btn-r" onclick="undo()">Borrar 🗑️</button>
+                <button class="btn-ui btn-r" style="background:#546e7a" onclick="setLvl(cLvl)">Reiniciar 🔄</button>
+            </div>
+            <div class="game-board">
+                <img src="logo_edinun.png" class="logo-interno no-print" draggable="false">
+                <div class="stars-counter no-print">⭐ <span id="tag-pts">0</span></div>
+                <h2 style="margin:0; color:var(--azul);">Forma el número</h2>
+                <div id="target-ui" class="target-val">--</div>
+                <div class="slots-row" id="slots-wrap"></div>
+                <div class="shelf-nums" id="shelf"></div>
+                <button class="btn-ui" style="background:var(--verde); width: 200px; font-size: 1.2rem;" onclick="check()">¡VERIFICAR!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-box"><div class="modal-body"><h2 id="modal-msg"></h2><button class="btn-ui btn-z" onclick="closeM()">Aceptar</button></div></div>
+
+    <div id="scr-end" class="pantalla">
+        <div class="report-card">
+            <img src="logo_edinun.png" width="180">
+            <h1>¡REPORTE DE LOGROS!</h1>
+            <p><strong>Estudiante:</strong> <span id="f-name"></span></p>
+            <p><strong>Tema Jugado:</strong> <span id="f-theme"></span></p>
+            <div id="f-pts" class="f-pts-box">Puntaje Final: 0 de 30</div>
+            
+            <div class="signatures-area">
+                
+                <div class="sig-box">Firma del Docente</div>
+                
+            </div>
+
+            <div class="no-print" style="margin-top:2vh; display:flex; gap:10px; justify-content:center;">
+                <button class="btn-ui btn-z" onclick="window.print()">Imprimir Reporte 🖨️</button>
+                <button class="btn-ui btn-r" style="background:#546e7a" onclick="location.reload()">Nuevo Estudiante 🔄</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let nP = ""; let pts = 0; let rounds = 0;
+    let tVal = 0; let cLvl = 40; let hst = [];
+    const colors = ["#2ecc71","#e74c3c","#2980b9","#27ae60","#c0392b","#1a5276","#82e0aa","#f1948a","#5dade2"];
+
+    function selectLevel(lvl) {
+        nP = document.getElementById('player-name').value.trim();
+        if(!nP) { popM("¡Escribe tu nombre primero!"); return; }
+        document.getElementById('scr-start').classList.remove('activa');
+        document.getElementById('scr-game').classList.add('activa');
+        genShelf(); setLvl(lvl);
+    }
+
+    function genShelf() {
+        const shelf = document.getElementById('shelf'); shelf.innerHTML = "";
+        for(let i=0; i<=9; i++) {
+            let n = document.createElement('div'); n.className='num-tile'; n.innerText=i;
+            n.onclick = () => fillInverse(i);
+            shelf.appendChild(n);
+        }
+    }
+
+    function setLvl(lvl) { 
+        cLvl = lvl; rounds = 0; pts = 0; 
+        document.getElementById('tag-pts').innerText = "0"; 
+        next(); 
+    }
+
+    function formatNum(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); 
+    }
+
+    function next() {
+        if (cLvl === 'high') {
+            const digits = Math.random() < 0.5 ? 8 : 9; // [cite: 748, 877]
+            const min = Math.pow(10, digits - 1);
+            const max = Math.pow(10, digits) - 1;
+            tVal = Math.floor(Math.random() * (max - min + 1)) + min;
+        } else {
+            tVal = Math.floor(Math.random() * cLvl) + 1;
+        }
+        document.getElementById('target-ui').innerText = formatNum(tVal);
+        hst = []; const w = document.getElementById('slots-wrap'); w.innerHTML = "";
+        const len = tVal.toString().length;
+        for(let i=0; i<len; i++) {
+            let col = document.createElement('div'); col.className='slot-col';
+            if ((len - i) % 3 === 0 && i !== 0) col.classList.add('slot-group-separator');
+            let tag = document.createElement('div'); tag.className='slot-label';
+            const revIdx = len - 1 - i;
+            const labels = ["U","D","C","UM","DM","CM","UMi","DMi","CMi"];
+            tag.innerText = labels[revIdx];
+            tag.style.background = (tVal > 100) ? colors[8 - revIdx] : (revIdx === 1 ? "#2ecc71" : "#f1c40f");
+            let s = document.createElement('div'); s.className='slot-target'; s.id='s-'+i;
+            col.appendChild(tag); col.appendChild(s); w.appendChild(col);
+        }
+    }
+
+    function fillInverse(num) { // DERECHA a IZQUIERDA [cite: 494, 802]
+        const len = tVal.toString().length;
+        for(let i = len - 1; i >= 0; i--) {
+            const slot = document.getElementById('s-' + i);
+            if(slot.innerText === "") { slot.innerText = num; hst.push('s-' + i); return; }
+        }
+    }
+
+    function undo() { if(hst.length > 0) { document.getElementById(hst.pop()).innerText = ""; } }
+
+    function check() {
+        let val = ""; const len = tVal.toString().length;
+        for(let i=0; i<len; i++) val += document.getElementById('s-'+i).innerText;
+        if(val === tVal.toString()) { 
+            pts += 10; popM("¡Excelente trabajo! ☀️"); 
+        } else { 
+            popM("¡Sigue practicando! El número era " + formatNum(tVal)); 
+        }
+        document.getElementById('tag-pts').innerText = pts;
+    }
+
+    function popM(m) { document.getElementById('modal-msg').innerText = m; document.getElementById('modal-box').style.display = 'flex'; }
+    
+    // Lógica de 3 rondas [cite: 145, 737, 740, 757, 785]
+    function closeM() { 
+        document.getElementById('modal-box').style.display = 'none'; 
+        rounds++; 
+        if(rounds >= 3) { finish(); } else { next(); }
+    }
+
+    function finish() {
+        document.getElementById('scr-game').classList.remove('activa');
+        document.getElementById('scr-game').style.display = 'none';
+        document.getElementById('scr-end').classList.add('activa');
+        document.getElementById('f-name').innerText = nP;
+        document.getElementById('f-theme').innerText = cLvl === 'high' ? "Desafío de 9 Cifras" : "Números 1-" + cLvl;
+        document.getElementById('f-pts').innerText = "Puntaje Final: " + pts + " de 30";
+    }
+</script>
+</body>
+</html>
